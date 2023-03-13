@@ -1,0 +1,25 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Init1
+#pragma kernel Simulate
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture3D<float4> Result;
+RWTexture3D<float4> Old;
+
+[numthreads(4,4,4)]
+void Init1 (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
+{
+    // TODO: insert actual code here!
+    if ((gid.x < 20 && gid.x > 11) && (gid.z < 20 && gid.z > 11) && (gid.y < 28 && gid.y > 19)) {
+        Result[id] = float4(0, 0, 0, 1);
+    }
+    else {
+        Result[id] = float4(0, 0, 0, 0);
+    }
+}
+
+[numthreads(4, 4, 4)]
+void Simulate (uint3 id : SV_DispatchThreadID)
+{
+    Result[id] = Old[uint3(id.x, (id.y + 1)%128.0f, id.z)];
+}
