@@ -17,8 +17,10 @@ public class FluidController : MonoBehaviour
     RenderTexture scalars1;
     RenderTexture oldscalars1;
 
-    int simin;
+    int simd;
+    int simv;
     int init;
+
     float dt;
 
 
@@ -57,10 +59,14 @@ public class FluidController : MonoBehaviour
         fog.parameters.volumeMask = density;
 
         init = sim.FindKernel("Init1");
-        sim.SetTexture(init, "Result", density, 0);
+        sim.SetTexture(init, "dense", density, 0);
+        sim.SetTexture(init, "scalar", scalars1, 0);
+        sim.SetTexture(init, "vel", velocity, 0);
         sim.Dispatch(init, density.width/4, density.height/4, density.volumeDepth/4);
-        simin = sim.FindKernel("Simulate");
-
+        
+        
+        simd = sim.FindKernel("SimulateDensity");
+        simv = sim.FindKernel("SimulateVelocity");
 
     }
 
@@ -70,14 +76,24 @@ public class FluidController : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        
+        Graphics.CopyTexture(velocity, oldvelocity);
+
+        sim.SetTexture(simv, "vel", velocity, 0);
+        sim.SetTexture(simv, "velold", oldvelocity, 0);
+        sim.SetTexture(simv, "scalar", scalars1, 0);
+        sim.Dispatch(simv, velocity.width / 4, velocity.height / 4, velocity.volumeDepth / 4);
+
+
         Graphics.CopyTexture(density, olddensity);
-        sim.SetTexture(simin, "Result", density, 0);
-        sim.SetTexture(simin, "Old", olddensity, 0);
-        sim.Dispatch(simin, density.width / 4, density.height / 4, density.volumeDepth / 4);
+        sim.SetTexture(simd, "dense", density, 0);
+        sim.SetTexture(simd, "denseold", olddensity, 0);
+        sim.Dispatch(simd, density.width / 4, density.height / 4, density.volumeDepth / 4);
+
+
         fog.parameters.volumeMask = density;
         RenderTexture.active = density;
         gameObject.SetActive(false);
         gameObject.SetActive(true);
     }
 }
+    
