@@ -10,11 +10,17 @@
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 RWTexture3D<float4> dense;
-RWTexture3D<float4> denseold;
+Texture3D<float4> denseold;
 RWTexture3D<float4> scalar;
-RWTexture3D<float4> scalarold;
+Texture3D<float4> scalarold;
 RWTexture3D<float4> vel;
-RWTexture3D<float4> velold;
+Texture3D<float4> velold;
+RWTexture3D<float> press;
+Texture3D<float> pressold;
+Texture3D<float3> forces;
+Texture3D<float> forcemag;
+Texture3D<float> densesource;
+
 SamplerState samplervel;
 float dt;
 float vis;
@@ -26,7 +32,7 @@ float vis;
 [numthreads(4,4,4)]
 void Init1 (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 {
-    // TODO: insert actual code here!
+    //Initial Density Field
     if ((gid.x < 20 && gid.x > 11) && (gid.z < 20 && gid.z > 11) && (gid.y < 28 && gid.y > 19)) {
         dense[id] = float4(0, 0, 0, 1);
     }
@@ -36,6 +42,7 @@ void Init1 (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 
     vel[id] = float4(0, 0, 0, 0);
     scalar[id] = float4(0, 0, 0, 0);
+    press[id] = 0.0f;
 }
 
 [numthreads(4, 4, 4)]
@@ -62,9 +69,7 @@ void ProjectVel(uint3 id : SV_DispatchThreadID) {
 [numthreads(4, 4, 4)]
 void AdvectVel(uint3 id : SV_DispatchThreadID)
 {
-    //float4 temp = float4(0, 0, 0, 0);
-    //Advect
-    //vel[id] = velold.Sample(samplervel, id - velold[id] * dt);
+    vel[id].xyz = velold.Sample(samplervel, id - (velold[id].xyz * dt));
 }
 
 //Simulates the velocity of timestep dt
