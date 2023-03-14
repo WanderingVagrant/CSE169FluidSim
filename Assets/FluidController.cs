@@ -10,6 +10,9 @@ public class FluidController : MonoBehaviour
     [SerializeField]
     ComputeShader sim;
 
+    [SerializeField]
+    float viscosity;
+
     RenderTexture density;
     RenderTexture olddensity;
     RenderTexture velocity;
@@ -81,12 +84,15 @@ public class FluidController : MonoBehaviour
         sim.SetTexture(simv, "vel", velocity, 0);
         sim.SetTexture(simv, "velold", oldvelocity, 0);
         sim.SetTexture(simv, "scalar", scalars1, 0);
+        sim.SetFloat("dt", dt);
+        sim.SetFloat("vis", viscosity);
         sim.Dispatch(simv, velocity.width / 4, velocity.height / 4, velocity.volumeDepth / 4);
 
 
         Graphics.CopyTexture(density, olddensity);
         sim.SetTexture(simd, "dense", density, 0);
         sim.SetTexture(simd, "denseold", olddensity, 0);
+        sim.SetFloat("dt", dt);
         sim.Dispatch(simd, density.width / 4, density.height / 4, density.volumeDepth / 4);
 
 

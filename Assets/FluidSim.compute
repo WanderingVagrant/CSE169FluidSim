@@ -1,7 +1,11 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Init1
-#pragma kernel SimulateDensity
-#pragma kernel SimulateVelocity
+#pragma kernel AddvectDense
+#pragma kernel ApplyForce
+#pragma kernel JacobiVisc
+#pragma kernel JacobiPress
+#pragma kernel ProjectVel
+#pragma kernel AdvectVel
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
@@ -12,6 +16,9 @@ RWTexture3D<float4> scalarold;
 RWTexture3D<float4> vel;
 RWTexture3D<float4> velold;
 SamplerState samplervel;
+float dt;
+float vis;
+
 
 
 
@@ -26,18 +33,45 @@ void Init1 (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
     else {
         dense[id] = float4(0, 0, 0, 0);
     }
+
+    vel[id] = float4(0, 0, 0, 0);
+    scalar[id] = float4(0, 0, 0, 0);
 }
 
-//Simulates the Density over timestep dt
 [numthreads(4, 4, 4)]
-void SimulateDensity (uint3 id : SV_DispatchThreadID)
-{
-    dense[id] = denseold[uint3(id.x, (id.y + 1)%128.0f, id.z)];
+void ApplyForce(uint3 id : SV_DispatchThreadID) {
+
+}
+
+[numthreads(4, 4, 4)]
+void JacobiVisc(uint3 id : SV_DispatchThreadID) {
+
+}
+
+[numthreads(4, 4, 4)]
+void JacobiPress(uint3 id : SV_DispatchThreadID) {
+
+}
+
+[numthreads(4, 4, 4)]
+void ProjectVel(uint3 id : SV_DispatchThreadID) {
+
 }
 
 //Simulates the velocity of timestep dt
 [numthreads(4, 4, 4)]
-void SimulateVelocity(uint3 id : SV_DispatchThreadID)
+void AdvectVel(uint3 id : SV_DispatchThreadID)
 {
-    dense[id] = denseold[uint3(id.x, (id.y - 1) % 128.0f, id.z)];
+    //float4 temp = float4(0, 0, 0, 0);
+    //Advect
+    //vel[id] = velold.Sample(samplervel, id - velold[id] * dt);
+}
+
+//Simulates the velocity of timestep dt
+[numthreads(4, 4, 4)]
+void AddvectDense(uint3 id : SV_DispatchThreadID)
+{
+    //float4 temp = float4(0, 0, 0, 0);
+    //Advect
+    //vel[id] = velold.Sample(samplervel, id - velold[id] * dt);
 }
