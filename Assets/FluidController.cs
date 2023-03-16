@@ -10,25 +10,32 @@ public class FluidController : MonoBehaviour
     [SerializeField]
     ComputeShader sim;
 
-    //[SerializeField]
+    [SerializeField]
     float viscosity = 0.01f;
 
-    //[SerializeField]
-    int JacobiItsVisc = 10;
+    [SerializeField]
+    int JacobiItsVisc = 0;
 
-   // [SerializeField]
+    [SerializeField]
     int JacobiItsPress = 30;
 
 
     RenderTexture density;
     RenderTexture olddensity;
+
+    [SerializeField]
     RenderTexture velocity;
+
     RenderTexture oldvelocity;
     //RenderTexture scalars1;
     //RenderTexture oldscalars1;
+
+    [SerializeField]
     RenderTexture pressure;
     RenderTexture oldpressure;
     RenderTexture div;
+
+    [SerializeField]
     RenderTexture forces;
     //RenderTexture forcemag;
     RenderTexture densesource;
@@ -59,7 +66,6 @@ public class FluidController : MonoBehaviour
         //TextureWrapMode wrapMode = TextureWrapMode.Clamp;
         density = new RenderTexture(settings);
         density.enableRandomWrite = true;
-        density.filterMode = FilterMode.Bilinear;
         density.Create();
 
         olddensity = new RenderTexture(density);
@@ -72,12 +78,15 @@ public class FluidController : MonoBehaviour
 
         velocity = new RenderTexture(settings);
         velocity.enableRandomWrite = true;
-        velocity.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat;
+        velocity.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R32G32B32A32_SFloat;
+        velocity.width += 2;
+        velocity.height += 2;
+        velocity.volumeDepth += 2;
         velocity.Create();
 
         oldvelocity = new RenderTexture(velocity);
         oldvelocity.enableRandomWrite = true;
-        oldvelocity.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat;
+        oldvelocity.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R32G32B32A32_SFloat;
         oldvelocity.Create();
 
         /*
@@ -101,14 +110,14 @@ public class FluidController : MonoBehaviour
         oldpressure.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R32_SFloat;
         oldpressure.Create();
 
-        div = new RenderTexture(pressure);
+        div = new RenderTexture(density);
         div.enableRandomWrite = true;
         div.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R32_SFloat;
         div.Create();
 
-        forces = new RenderTexture(velocity);
+        forces = new RenderTexture(density);
         forces.enableRandomWrite = true;
-        forces.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat;
+        forces.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R32G32B32A32_SFloat;
         forces.Create();
 
         /*
@@ -155,8 +164,11 @@ public class FluidController : MonoBehaviour
         //Apply Forces
         sim.SetTexture(appforce, "forces", forces, 0);
         sim.SetTexture(appforce, "vel", velocity, 0);
+        sim.SetTexture(appforce, "velold", oldvelocity, 0);
         sim.SetFloat("dt", dt);
         sim.Dispatch(appforce, dimx, dimy, dimz);
+        
+
         
         //Advect Velocity
         sim.SetTexture(advel, "vel", oldvelocity, 0);
@@ -164,9 +176,9 @@ public class FluidController : MonoBehaviour
         sim.SetFloat("dt", dt);
         sim.Dispatch(advel, dimx, dimy, dimz);
         
-        float alpha = (float)1.0 / (dt * 0.2f);
+        float alpha = (float)1.0 / (dt * viscosity);
         //Viscous Diffuse
-        for (int i = 0; i < 20; ++i)
+        for (int i = 0; i < JacobiItsVisc; ++i)
         {
             sim.SetTexture(jacobv, "vel", velocity, 0);
             sim.SetTexture(jacobv, "velold", oldvelocity, 0);
@@ -188,7 +200,7 @@ public class FluidController : MonoBehaviour
         sim.Dispatch(divvel, dimx, dimy, dimz);
         
         //Callculate pressure
-        for (int i = 0; i < 20; ++i)
+        for (int i = 0; i < JacobiItsPress; ++i)
         {
             sim.SetTexture(jacobp, "press", oldpressure, 0);
             sim.SetTexture(jacobp, "pressold", pressure, 0);
@@ -201,9 +213,11 @@ public class FluidController : MonoBehaviour
             sim.Dispatch(jacobp, dimx, dimy, dimz);
         }
         
+        
         //Subtract P Gradient
         sim.SetTexture(projectv, "pressold", pressure, 0);
-        sim.SetTexture(projectv, "vel", oldvelocity);
+        sim.SetTexture(projectv, "vel", velocity, 0);
+        sim.SetTexture(projectv, "velold", oldvelocity, 0);
         sim.Dispatch(projectv, dimx, dimy, dimz);
         
         
@@ -212,17 +226,17 @@ public class FluidController : MonoBehaviour
         
         //Advect Density
         
-        sim.SetTexture(adddense, "velold", oldvelocity, 0);
+        sim.SetTexture(adddense, "velold", velocity, 0);
         sim.SetTexture(adddense, "dense", density, 0);
         sim.SetTexture(adddense, "denseold", olddensity, 0);
         sim.SetFloat("dt", dt);
         sim.Dispatch(adddense, dimx, dimy, dimz);
         
-
-        Graphics.CopyTexture(oldvelocity, velocity);
-
+        Graphics.CopyTexture(velocity, oldvelocity);
+        
         gameObject.SetActive(false);
         gameObject.SetActive(true);
+        print("Fixed Update");
     }
 }
     

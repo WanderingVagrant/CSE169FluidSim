@@ -8,6 +8,7 @@
 #pragma kernel AdvectVel
 #pragma kernel DivVel
 
+#define dim 128
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
@@ -39,12 +40,63 @@ float beta;
 
 
 
+void boundsvel(RWTexture3D<float4> tex, uint3 idv) {
+    if (idv.x == 1) {
+        vel[idv - uint3(1, 0, 0)] = -1 * tex[idv];
+    }
+    if (idv.x == dim) {
+        vel[idv + uint3(1, 0, 0)] = -1 * tex[idv];
+    }
+    if (idv.y == 1) {
+        vel[idv - uint3(0, 1, 0)] = -1 * tex[idv];
+    }
+    if (idv.y == dim) {
+        vel[idv + uint3(0, 1, 0)] = -1 * tex[idv];
+    }
+    if (idv.z == 1) {
+        vel[idv - uint3(0, 0, 1)] = -1 * tex[idv];
+    }
+    if (idv.z == dim) {
+        vel[idv + uint3(0, 0, 1)] = -1 * tex[idv];
+    }
+}
 
+void boundspress(RWTexture3D<float> tex, uint3 idv) {
+    if (idv.x == 1) {
+        press[idv - uint3(1, 0, 0)] = tex[idv];
+    }
+    if (idv.x == dim) {
+        press[idv + uint3(1, 0, 0)] = tex[idv];
+    }
+    if (idv.y == 1) {
+        press[idv - uint3(0, 1, 0)] = tex[idv];
+    }
+    if (idv.y == dim) {
+        press[idv + uint3(0, 1, 0)] = tex[idv];
+    }
+    if (idv.z == 1) {
+        press[idv - uint3(0, 0, 1)] = tex[idv];
+    }
+    if (idv.z == dim) {
+        press[idv + uint3(0, 0, 1)] = tex[idv];
+    }
+}
+
+
+float3 uv(float3 id) {
+    return (id + 0.5) / 130.0f;
+}
+
+float3 uvd(float3 id) {
+    return (id + 0.5) / 128.0f;
+}
 
 //Sets Velocity to zero everywhere and adds a ball of density near the top
 [numthreads(4,4,4)]
 void Init1 (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
 {
+
+    uint3 idv = id + uint3(1, 1, 1);
     //Initial Density Field
     if ((gid.x < 20 && gid.x > 12) && (gid.z < 20 && gid.z > 12) && (gid.y < 28 && gid.y > 18)) {
         dense[id] = float4(0, 0, 0, 1);
@@ -53,116 +105,121 @@ void Init1 (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
         dense[id] = float4(0, 0, 0, 0);
     }
 
-    vel[id] = float4(0, 0, 0, 0);
+    vel[idv] = float4(0, 0, 0, 0);
     //scalar[id] = float4(0, 0, 0, 0);
-    press[id] = 0.0f;
-    //forces[id] = float4(0, 0, 0, 0);
+    press[idv] = 0.0f;
+    forces[id] = float4(0, 0, 0, 0);
     densesource[id] = 0.0f;
 
-    if ((gid.x < 40 && gid.x > 24) && (gid.z < 40 && gid.z > 24) && (gid.y < 56 && gid.y > 36)) {
-        forces[id] = float4(100, 0, 0, 0);
+    //boundspress(press, idv);
+    //boundsvel(vel, idv);
+
+    if ((idv.x < 81 && idv.x > 49) && (idv.z < 81 && idv.z > 49) && (idv.y < 113 && idv.y > 73)) {
+        forces[id] = float4(20, 20, 0, 0);
+    }
+    if ((idv.x < 120 && idv.x > 100) && (idv.z < 81 && idv.z > 49) && (idv.y < 120 && idv.y > 100)) {
+        forces[id] = float4(0, -20, 0, 0);
     }
 }
 
 [numthreads(4, 4, 4)]
 void ApplyForce(uint3 id : SV_DispatchThreadID) {
+    //vel[id] = dt * forces[id];
+    uint3 idv = id + uint3(1, 1, 1);
 
-
-
-
-    vel[id] = dt * forces[id];
+    //vel[idv] = velold[idv] + dt* forces[id];
+    vel[idv] = forces[id];
+    boundsvel(vel, idv);
 }
 
 [numthreads(4, 4, 4)]
 void JacobiVisc(uint3 id : SV_DispatchThreadID) {
-    uint dim = 127;
-
-    
-    int pboundx = int(dim != id.x) * 2 - 1;
-    int nboundx = int(0 != id.x) * 2 - 1;
-    int pboundy = int(dim != id.y) * 2 - 1;
-    int nboundy = int(0 != id.x) * 2 - 1;
-    int pboundz = int(dim != id.z) * 2 - 1;
-    int nboundz = int(0 != id.x) * 2 - 1;
-
-
-    /*
-    vel[id] = ((nboundx * velold.SampleLevel(samplervelold, (id - uint3(1, 0, 0))/128.0f, 0) + pboundx * velold.SampleLevel(samplervelold, (id + uint3(1, 0, 0))/128.0f, 0)) +
-        (nboundy * velold.SampleLevel(samplervelold, (id - uint3(0, 1, 0))/128.0f, 0) + pboundy * velold.SampleLevel(samplervelold, (id + uint3(0, 1, 0))/128.0f, 0)) +
-        (nboundz * velold.SampleLevel(samplervelold, (id - uint3(0, 0, 1))/128.0f, 0) + pboundz * velold.SampleLevel(samplervelold, (id + uint3(0, 0, 1))/128.0f, 0))
-        + alpha * velold[id]) / beta;
-    */
-    vel[id] = ((nboundx * velold[clamp(id - uint3(1, 0, 0), uint3(0, 0, 0), uint3(127, 127, 127))] + pboundx * velold[clamp(id + uint3(1, 0, 0), uint3(0, 0, 0), uint3(127, 127, 127))]) +
-        (nboundy * velold[clamp(id - uint3(0, 1, 0), uint3(0, 0, 0), uint3(127, 127, 127))] + pboundy * velold[clamp(id + uint3(0, 1, 0), uint3(0, 0, 0), uint3(127, 127, 127))]) +
-        (nboundz * velold[clamp(id - uint3(0, 0, 1), uint3(0, 0, 0), uint3(127, 127, 127))] + pboundz * velold[clamp(id + uint3(0, 0, 1), uint3(0, 0, 0), uint3(127, 127, 127))])
-        + alpha * velold[id]) / beta;
+    uint3 idv = id + uint3(1, 1, 1);
+    vel[idv] = ((velold.SampleLevel(samplervelold, uv(idv - uint3(1, 0, 0)), 0) + velold.SampleLevel(samplervelold, uv(idv + uint3(1, 0, 0)), 0)) +
+        (velold.SampleLevel(samplervelold, uv(idv - uint3(0, 1, 0)), 0) + velold.SampleLevel(samplervelold, uv(idv + uint3(0, 1, 0)), 0)) +
+        (velold.SampleLevel(samplervelold, uv(idv - uint3(0, 0, 1)), 0) + velold.SampleLevel(samplervelold, uv(idv + uint3(0, 0, 1)), 0))
+        + alpha * velold[idv]) / beta;
+    boundsvel(vel, idv);
 }
 
 [numthreads(4, 4, 4)]
 void JacobiPress(uint3 id : SV_DispatchThreadID) {
-    /*
-    press[id] = ((pressold.SampleLevel(samplerpressold, (id - uint3(1, 0, 0))/128.0f, 0) + pressold.SampleLevel(samplerpressold, (id + uint3(1, 0, 0))/128.0f, 0)) +
-        (pressold.SampleLevel(samplerpressold, (id - uint3(0, 1, 0))/128.0f, 0) + pressold.SampleLevel(samplerpressold, (id + uint3(0, 1, 0))/128.0f, 0)) +
-        (pressold.SampleLevel(samplerpressold, (id - uint3(0, 0, 1))/128.0f, 0) + pressold.SampleLevel(samplerpressold, (id + uint3(0, 0, 1))/128.0f, 0))
+
+    float3 idv = id + uint3(1, 1, 1);
+
+    press[idv] = 0.0f;
+    
+    press[idv] = ((pressold.SampleLevel(samplerpressold, uv(idv - uint3(1, 0, 0)), 0) + pressold.SampleLevel(samplerpressold, uv(idv + uint3(1, 0, 0)), 0)) +
+        (pressold.SampleLevel(samplerpressold, uv(idv - uint3(0, 1, 0)), 0) + pressold.SampleLevel(samplerpressold, uv(idv + uint3(0, 1, 0)), 0)) +
+        (pressold.SampleLevel(samplerpressold, uv(idv - uint3(0, 0, 1)), 0) + pressold.SampleLevel(samplerpressold, uv(idv + uint3(0, 0, 1)), 0))
         - divread[id]) / 6.0f;
-        */
+    
+    boundspress(press, idv);
+
+    /*
     press[id] = ((pressold[clamp(id - uint3(1, 0, 0), uint3(0, 0, 0), uint3(127, 127, 127))] + pressold[clamp(id + uint3(1, 0, 0),uint3(0, 0, 0), uint3(127, 127, 127))]) +
         (pressold[clamp(id - uint3(0, 1, 0), uint3(0, 0, 0), uint3(127, 127, 127))] + pressold[clamp(id + uint3(0, 1, 0), uint3(0, 0, 0), uint3(127, 127, 127))]) +
         (pressold[clamp(id - uint3(0, 0, 1), uint3(0, 0, 0), uint3(127, 127, 127))] + pressold[clamp(id + uint3(0, 0, 1), uint3(0, 0, 0), uint3(127, 127, 127))])
         - divread[id]) / 6.0f;
+        */
 }
 
 [numthreads(4, 4, 4)]
 void ProjectVel(uint3 id : SV_DispatchThreadID) {
+    float3 idv = id + uint3(1, 1, 1);
+
+
+    vel[idv] = velold[idv] - 0.5f * float4((pressold.SampleLevel(samplerpressold, uv(idv + uint3(1, 0, 0)), 0) - pressold.SampleLevel(samplerpressold, uv(idv - uint3(1, 0, 0)), 0)),
+        (pressold.SampleLevel(samplerpressold, uv(idv + uint3(0, 1, 0)), 0) - pressold.SampleLevel(samplerpressold, uv(idv - uint3(0, 1, 0)), 0)),
+        (pressold.SampleLevel(samplerpressold, uv(idv + uint3(0, 0, 1)), 0) - pressold.SampleLevel(samplerpressold, uv(idv - uint3(0, 0, 1)), 0)),0);
+        
+    boundsvel(vel, idv);
     /*
-    vel[id] -= 0.5f * float4((pressold.SampleLevel(samplerpressold, (id + uint3(1, 0, 0))/128.0f, 0) - pressold.SampleLevel(samplerpressold, (id - uint3(1, 0, 0))/128.0f, 0)),
-        (pressold.SampleLevel(samplerpressold, (id + uint3(0, 1, 0))/128.0f, 0) - pressold.SampleLevel(samplerpressold, (id - uint3(0, 1, 0))/128.0f, 0)),
-        (pressold.SampleLevel(samplerpressold, (id + uint3(0, 0, 1))/128.0f, 0) - pressold.SampleLevel(samplerpressold, (id - uint3(0, 0, 1))/128.0f, 0)),0);
-        */
     vel[id] -= 0.5f * float4((pressold[clamp(id + uint3(1, 0, 0), uint3(0, 0, 0), uint3(127, 127, 127))] - pressold[clamp(id - uint3(1, 0, 0), uint3(0, 0, 0), uint3(127, 127, 127))]),
         (pressold[clamp(id + uint3(0, 1, 0), uint3(0, 0, 0), uint3(127, 127, 127))] - pressold[clamp(id - uint3(0, 1, 0), uint3(0, 0, 0), uint3(127, 127, 127))]),
         (pressold[clamp(id + uint3(0, 0, 1), uint3(0, 0, 0), uint3(127, 127, 127))] - pressold[clamp(id - uint3(0, 0, 1), uint3(0, 0, 0), uint3(127, 127, 127))]), 0);
+        */
 }
 
 //Simulates the velocity of timestep dt
 [numthreads(4, 4, 4)]
 void AdvectVel(uint3 id : SV_DispatchThreadID)
 {
-    //vel[id] = velold.SampleLevel(samplervelold, (((float3) id) - velold[id].xyz * dt)/128.0f, 0);
-    vel[id] = velold[clamp(id - velold[id].xyz * dt, uint3(0, 0, 0), uint3(127, 127, 127))];
+    float3 idv = id + uint3(1, 1, 1);
+    vel[idv] = velold.SampleLevel(samplervelold, uv( ((float3)idv) - velold[idv].xyz * dt), 0);
+
+    //vel[id] = velold[clamp(id - velold[id].xyz * dt, uint3(0, 0, 0), uint3(127, 127, 127))];
+    //vel[idv] = velold.SampleLevel(samplervelold, uv(idv - float3(0, 10, 0) * dt), 0);
+
+    boundsvel(vel, idv);
 }
 
 //Simulates the velocity of timestep dt
 [numthreads(4, 4, 4)]
 void AddvectDense(uint3 id : SV_DispatchThreadID)
 {
-    //dense[id] = denseold.SampleLevel(samplerdenseold, (id - velold[id].xyz * dt)/128.0, 0);
+    dense[id] = float4(0, 0, 0, 0);
+    float3 idv = id + uint3(1, 1, 1);
+    dense[id] = denseold.SampleLevel(samplerdenseold, uvd(((float3) id) - velold[idv].xyz * dt), 0);
     //dense[id] = denseold.SampleLevel(samplerdenseold, (float3)((float3)id)/256.0f, 0);
     //dense[id] = denseold[id];
     //dense[id] = denseold.Load(float4(id, 0));
     //dense[id] = denseold[(uint3) (((float3) id) - float3(0, -1, 0))];
-    dense[id] = denseold[clamp(id - velold[id].xyz * dt, uint3(0, 0, 0), uint3(127, 127, 127))];
+    //dense[id] = denseold[clamp(id - velold[id].xyz * dt, uint3(0, 0, 0), uint3(127, 127, 127))];
+
+    //dense[id] = denseold.SampleLevel(samplerdenseold, uv(((float3) id) - float3(0, 10, 0) * dt), 0);
+    dense[id] += float4(velold[idv].xyz, 0);
 }
 
  
 //Calc velocity
 [numthreads(4, 4, 4)]
 void DivVel(uint3 id : SV_DispatchThreadID) {
-    uint dim = 127;
+    float3 idv = id + uint3(1, 1, 1);
 
-    int pboundx = int(dim != id.x) * 2 - 1;
-    int nboundx = int(0 != id.x) * 2 - 1;
-    int pboundy = int(dim != id.y) * 2 - 1;
-    int nboundy = int(0 != id.x) * 2 - 1;
-    int pboundz = int(dim != id.z) * 2 - 1;
-    int nboundz = int(0 != id.x) * 2 - 1;
-
-    /*
-    div[id] = (pboundx * velold.SampleLevel(samplervelold, (id + uint3(1, 0, 0))/128.0f, 0).x - nboundx * velold.SampleLevel(samplervelold, (id - uint3(1, 0, 0))/128.0f, 0).x) +
-        (pboundy * velold.SampleLevel(samplervelold, (id + uint3(0, 1, 0))/128.0f, 0).y - nboundy * velold.SampleLevel(samplervelold, (id - uint3(0, 1, 0))/128.0f, 0).y) +
-        (pboundz * velold.SampleLevel(samplervelold, (id + uint3(0, 0, 1))/128.0f, 0).z + nboundz * velold.SampleLevel(samplervelold, (id - uint3(0, 0, 1))/128.0f, 0).z);
-    */
-    div[id] = ((pboundx * velold[clamp(id + uint3(1, 0, 0), uint3(0, 0, 0), uint3(127, 127, 127))].x - nboundx * velold[clamp(id - uint3(1, 0, 0), uint3(0, 0, 0), uint3(127, 127, 127))].x) +
-        (pboundy * velold[clamp(id + uint3(0, 1, 0), uint3(0, 0, 0), uint3(127, 127, 127))].y - nboundy * velold[clamp(id - uint3(0, 1, 0), uint3(0, 0, 0), uint3(127, 127, 127))].y) +
-        (pboundz * velold[clamp(id + uint3(0, 0, 1), uint3(0, 0, 0), uint3(127, 127, 127))].z + nboundz * velold[clamp(id - uint3(0, 0, 1), uint3(0, 0, 0), uint3(127, 127, 127))].z))*0.5;
+    div[id] = (velold.SampleLevel(samplervelold, uv(idv + uint3(1, 0, 0)), 0).x - velold.SampleLevel(samplervelold, uv(idv - uint3(1, 0, 0)), 0).x) +
+        (velold.SampleLevel(samplervelold, uv(idv + uint3(0, 1, 0)), 0).y - velold.SampleLevel(samplervelold, uv(idv - uint3(0, 1, 0)), 0).y) +
+        (velold.SampleLevel(samplervelold, uv(idv + uint3(0, 0, 1)), 0).z - velold.SampleLevel(samplervelold, uv(idv - uint3(0, 0, 1)), 0).z);
+    
 }
+
