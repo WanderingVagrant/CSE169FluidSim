@@ -58,7 +58,7 @@ public class FluidController : MonoBehaviour
     float windmag = 0;
 
     [SerializeField]
-    [Range(0, 10)]
+    [Range(0, 20)]
     int radius = 1;
 
     [SerializeField]
@@ -73,10 +73,17 @@ public class FluidController : MonoBehaviour
     [Range(1, 127)]
     int sourcelocz = 0;
 
+    [SerializeField]
+    [Range(0, 10)]
+    float output = 0;
+
 
 
     [SerializeField]
     bool reset = false;
+
+    [SerializeField]
+    bool clear = false;
 
     int init;
     int appforce;
@@ -232,7 +239,7 @@ public class FluidController : MonoBehaviour
                     for (int k = sourcelocz - radius; k < sourcelocz + radius; ++k)
                     {
                         forcevecs[i * 128 * 128 + j * 128 + k] = new Color(Mathf.Cos(windtheta) * Mathf.Cos(windphi), Mathf.Sin(windtheta), Mathf.Sin(windphi) * Mathf.Cos(windtheta), 0);
-                        sourcecolors[i * 128 * 128 + j * 128 + k] = new Color32(0, 0, 0, (byte)10);
+                        sourcecolors[i * 128 * 128 + j * 128 + k] = new Color32(0, 0, 0, (byte)output);
                     }
                 }
             }
@@ -249,6 +256,11 @@ public class FluidController : MonoBehaviour
             forces.Apply();
             densesource.Apply();
             reset = false;
+        }
+        else if (clear)
+        {
+            Graphics.Blit(densesource, density);
+            clear = false;
         }
 
 

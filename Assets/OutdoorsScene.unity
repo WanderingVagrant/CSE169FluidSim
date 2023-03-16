@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 2156.5376, g: 2259.3213, b: 3279.2231, a: 1}
+  m_IndirectSpecularColor: {r: 2156.5376, g: 2259.329, b: 3279.2263, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -471,20 +471,22 @@ MonoBehaviour:
   sim: {fileID: 7200000, guid: e7a8df200f4c7fb4599f781ab6707acd, type: 3}
   viscosity: 0.001
   JacobiItsVisc: 50
-  JacobiItsPress: 100
+  JacobiItsPress: 200
   velocity: {fileID: 0}
   pressure: {fileID: 0}
   forces: {fileID: 0}
   densesource: {fileID: 0}
   applychanges: 0
   windphi: 0
-  windtheta: 0
-  windmag: 0
-  radius: 1
-  sourcelocx: 0
-  sourcelocy: 0
-  sourcelocz: 0
+  windtheta: 0.785
+  windmag: 115.9
+  radius: 20
+  sourcelocx: 64
+  sourcelocy: 64
+  sourcelocz: 64
+  output: 2.94
   reset: 0
+  clear: 0
 --- !u!1 &1823688464
 GameObject:
   m_ObjectHideFlags: 0
