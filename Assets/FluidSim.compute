@@ -22,13 +22,13 @@ RWTexture3D<float4> vel;
 Texture3D<float4> velold;
 RWTexture3D<float> press;
 Texture3D<float> pressold;
-RWTexture3D<float4> forces;
+Texture3D<float4> forces;
 RWTexture3D<float> div;
 Texture3D<float> divread;
 
 //Texture3D<float> forcemag;
 
-RWTexture3D<float> densesource;
+Texture3D<unorm float4> densesource;
 
 SamplerState samplervelold;
 SamplerState samplerpressold;
@@ -109,17 +109,20 @@ void Init1 (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
     //scalar[id] = float4(0, 0, 0, 0);
     press[idv] = 0.0f;
     forces[id] = float4(0, 0, 0, 0);
-    densesource[id] = 0.0f;
+    densesource[id] = float4(0, 0, 0, 0);
 
     //boundspress(press, idv);
     //boundsvel(vel, idv);
-
+    /*
     if ((idv.x < 81 && idv.x > 49) && (idv.z < 81 && idv.z > 49) && (idv.y < 113 && idv.y > 73)) {
-        forces[id] = float4(20, 20, 0, 0);
+        forces[id] = float4(80, 60, 0, 0);
+        densesource[id] = float4(0, 0, 0, 0.05);
     }
-    if ((idv.x < 120 && idv.x > 100) && (idv.z < 81 && idv.z > 49) && (idv.y < 120 && idv.y > 100)) {
-        forces[id] = float4(0, -20, 0, 0);
-    }
+    */
+
+    //if ((idv.x < 120 && idv.x > 100) && (idv.z < 81 && idv.z > 49) && (idv.y < 120 && idv.y > 100)) {
+    //    forces[id] = float4(-50, -20, 0, 0);
+    //}
 }
 
 [numthreads(4, 4, 4)]
@@ -128,7 +131,7 @@ void ApplyForce(uint3 id : SV_DispatchThreadID) {
     uint3 idv = id + uint3(1, 1, 1);
 
     //vel[idv] = velold[idv] + dt* forces[id];
-    vel[idv] = forces[id];
+    vel[idv] += forces[id]*dt;
     boundsvel(vel, idv);
 }
 
@@ -201,6 +204,7 @@ void AddvectDense(uint3 id : SV_DispatchThreadID)
     dense[id] = float4(0, 0, 0, 0);
     float3 idv = id + uint3(1, 1, 1);
     dense[id] = denseold.SampleLevel(samplerdenseold, uvd(((float3) id) - velold[idv].xyz * dt), 0);
+    dense[id] += densesource[id];
     //dense[id] = denseold.SampleLevel(samplerdenseold, (float3)((float3)id)/256.0f, 0);
     //dense[id] = denseold[id];
     //dense[id] = denseold.Load(float4(id, 0));

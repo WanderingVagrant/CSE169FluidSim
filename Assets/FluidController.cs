@@ -160,6 +160,7 @@ public class FluidController : MonoBehaviour
     }
     private void FixedUpdate()
     {
+        //Add Forces and Density
         
         //Apply Forces
         sim.SetTexture(appforce, "forces", forces, 0);
@@ -229,6 +230,7 @@ public class FluidController : MonoBehaviour
         sim.SetTexture(adddense, "velold", velocity, 0);
         sim.SetTexture(adddense, "dense", density, 0);
         sim.SetTexture(adddense, "denseold", olddensity, 0);
+        sim.SetTexture(adddense, "densesource", densesource, 0);
         sim.SetFloat("dt", dt);
         sim.Dispatch(adddense, dimx, dimy, dimz);
         
