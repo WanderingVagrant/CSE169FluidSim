@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 2157.0132, g: 2259.603, b: 3279.44, a: 1}
+  m_IndirectSpecularColor: {r: 2156.5376, g: 2259.3213, b: 3279.2231, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -447,14 +447,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 546694871}
-  m_LocalRotation: {x: 0, y: 0.2588191, z: 0, w: 0.9659258}
+  m_LocalRotation: {x: 0.0033690196, y: 0.79518384, z: -0.0053892354, w: 0.60633516}
   m_LocalPosition: {x: 0, y: 1, z: -8.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
-  m_LocalEulerAnglesHint: {x: 0, y: 30, z: 0}
+  m_LocalEulerAnglesHint: {x: 0.725, y: 105.348, z: -0.067}
 --- !u!114 &546694874
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -470,11 +470,21 @@ MonoBehaviour:
   settings: {fileID: 8400000, guid: 6dff3f8db99222248a8192d6963de062, type: 2}
   sim: {fileID: 7200000, guid: e7a8df200f4c7fb4599f781ab6707acd, type: 3}
   viscosity: 0.001
-  JacobiItsVisc: 100
+  JacobiItsVisc: 50
   JacobiItsPress: 100
   velocity: {fileID: 0}
   pressure: {fileID: 0}
   forces: {fileID: 0}
+  densesource: {fileID: 0}
+  applychanges: 0
+  windphi: 0
+  windtheta: 0
+  windmag: 0
+  radius: 1
+  sourcelocx: 0
+  sourcelocy: 0
+  sourcelocz: 0
+  reset: 0
 --- !u!1 &1823688464
 GameObject:
   m_ObjectHideFlags: 0

@@ -28,6 +28,8 @@ Texture3D<float> divread;
 
 //Texture3D<float> forcemag;
 
+float windmag;
+
 Texture3D<unorm float4> densesource;
 
 SamplerState samplervelold;
@@ -108,11 +110,11 @@ void Init1 (uint3 id : SV_DispatchThreadID, uint3 gid : SV_GroupID)
     vel[idv] = float4(0, 0, 0, 0);
     //scalar[id] = float4(0, 0, 0, 0);
     press[idv] = 0.0f;
-    forces[id] = float4(0, 0, 0, 0);
-    densesource[id] = float4(0, 0, 0, 0);
+    //forces[id] = float4(0, 0, 0, 0);
+    //densesource[id] = float4(0, 0, 0, 0);
 
-    //boundspress(press, idv);
-    //boundsvel(vel, idv);
+    boundspress(press, idv);
+    boundsvel(vel, idv);
     /*
     if ((idv.x < 81 && idv.x > 49) && (idv.z < 81 && idv.z > 49) && (idv.y < 113 && idv.y > 73)) {
         forces[id] = float4(80, 60, 0, 0);
@@ -131,7 +133,7 @@ void ApplyForce(uint3 id : SV_DispatchThreadID) {
     uint3 idv = id + uint3(1, 1, 1);
 
     //vel[idv] = velold[idv] + dt* forces[id];
-    vel[idv] += forces[id]*dt;
+    vel[idv] += forces[id]*dt*windmag;
     boundsvel(vel, idv);
 }
 

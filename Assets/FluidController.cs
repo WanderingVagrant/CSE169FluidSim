@@ -36,10 +36,47 @@ public class FluidController : MonoBehaviour
     RenderTexture div;
 
     [SerializeField]
-    RenderTexture forces;
+    Texture3D forces;
     //RenderTexture forcemag;
-    RenderTexture densesource;
 
+    [SerializeField]
+    Texture3D densesource;
+
+    [SerializeField]
+    bool applychanges = false;
+
+    [SerializeField]
+    [Range(0.0f, 2*Mathf.PI)]
+    float windphi = 0;
+
+    [SerializeField]
+    [Range(-Mathf.PI/4, Mathf.PI / 4)]
+    float windtheta = 0;
+
+    [SerializeField]
+    [Range(0.0f, 150)]
+    float windmag = 0;
+
+    [SerializeField]
+    [Range(0, 10)]
+    int radius = 1;
+
+    [SerializeField]
+    [Range(1, 127)]
+    int sourcelocx = 0;
+
+    [SerializeField]
+    [Range(1, 127)]
+    int sourcelocy = 0;
+
+    [SerializeField]
+    [Range(1, 127)]
+    int sourcelocz = 0;
+
+
+
+    [SerializeField]
+    bool reset = false;
 
     int init;
     int appforce;
@@ -55,6 +92,13 @@ public class FluidController : MonoBehaviour
     int dimz;
 
     float dt;
+
+    Color[] forcevecs;
+
+    Color32[] sourcecolors;
+
+    Color[] empty;
+
 
 
     UnityEngine.Rendering.HighDefinition.LocalVolumetricFog fog;
@@ -72,10 +116,11 @@ public class FluidController : MonoBehaviour
         olddensity.enableRandomWrite = true;
         olddensity.Create();
 
+        /*
         densesource = new RenderTexture(density);
         densesource.enableRandomWrite = true;
         densesource.Create();
-
+        */
         velocity = new RenderTexture(settings);
         velocity.enableRandomWrite = true;
         velocity.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R32G32B32A32_SFloat;
@@ -115,11 +160,12 @@ public class FluidController : MonoBehaviour
         div.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R32_SFloat;
         div.Create();
 
+        /*
         forces = new RenderTexture(density);
         forces.enableRandomWrite = true;
         forces.graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R32G32B32A32_SFloat;
         forces.Create();
-
+        */
         /*
         forcemag = new RenderTexture(velocity);
         forcemag.enableRandomWrite = false;
@@ -133,6 +179,19 @@ public class FluidController : MonoBehaviour
 
         fog = gameObject.GetComponent<UnityEngine.Rendering.HighDefinition.LocalVolumetricFog>();
         fog.parameters.volumeMask = density;
+
+
+        forces = new Texture3D(128, 128, 128, TextureFormat.RGBAFloat, false);
+        densesource = new Texture3D(128, 128, 128, TextureFormat.RGBA32, false);
+        forcevecs = new Color[128 * 128 * 128];
+        sourcecolors = new Color32[128 * 128 * 128];
+        empty = new Color[128 * 128 * 128];
+        forces.SetPixels(empty);
+        densesource.SetPixels(empty);
+        forces.Apply();
+        densesource.Apply();
+
+
 
         init = sim.FindKernel("Init1");
         sim.SetTexture(init, "dense", density, 0);
@@ -152,6 +211,8 @@ public class FluidController : MonoBehaviour
         divvel = sim.FindKernel("DivVel");
         Graphics.CopyTexture(velocity, oldvelocity);
 
+        
+
     }
 
     // Update is called once per frame
@@ -160,9 +221,39 @@ public class FluidController : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        //Add Forces and Density
-        
+
+        if (applychanges)
+        {
+            //Add Forces and Density
+            for (int i = sourcelocx - radius; i < sourcelocx + radius; ++i)
+            {
+                for (int j = sourcelocy - radius; j < sourcelocy + radius; ++j)
+                {
+                    for (int k = sourcelocz - radius; k < sourcelocz + radius; ++k)
+                    {
+                        forcevecs[i * 128 * 128 + j * 128 + k] = new Color(Mathf.Cos(windtheta) * Mathf.Cos(windphi), Mathf.Sin(windtheta), Mathf.Sin(windphi) * Mathf.Cos(windtheta), 0);
+                        sourcecolors[i * 128 * 128 + j * 128 + k] = new Color32(0, 0, 0, (byte)10);
+                    }
+                }
+            }
+            forces.SetPixels(forcevecs);
+            densesource.SetPixels32(sourcecolors);
+            forces.Apply();
+            densesource.Apply();
+            applychanges = false;
+        }
+        else if (reset)
+        {
+            forces.SetPixels(empty);
+            densesource.SetPixels(empty);
+            forces.Apply();
+            densesource.Apply();
+            reset = false;
+        }
+
+
         //Apply Forces
+        sim.SetFloat("windmag", windmag);
         sim.SetTexture(appforce, "forces", forces, 0);
         sim.SetTexture(appforce, "vel", velocity, 0);
         sim.SetTexture(appforce, "velold", oldvelocity, 0);
