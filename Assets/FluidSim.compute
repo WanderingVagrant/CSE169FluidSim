@@ -1,4 +1,5 @@
 // Each #kernel tells which function to compile; you can have many kernels
+// This is a comment
 #pragma kernel Init1
 #pragma kernel AddvectDense
 #pragma kernel ApplyForce
